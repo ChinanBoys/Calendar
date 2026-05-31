@@ -16,7 +16,54 @@
 | [`prototype/index.html`](prototype/index.html) | 可点击高保真原型（含全部页面 P1–P7） |
 | `prototype/annotate.html` | 功能标注图生成器（`?p=home/confirm/...` 切换页面） |
 
-## 快速开始
+## 后端实现进度（Spring Boot + MyBatis）
+
+| 模块 | 接口 | 状态 | 操作表 |
+| --- | --- | --- | --- |
+| 语音解析 | `POST /api/voice/parse` | ✅ 已实现 | `voice_log` |
+| 事件管理 | `/api/events` 等 | 待开发 | `event`、`reminder` |
+| 提醒管理 | `/api/reminders/upcoming` | 待开发 | `reminder` |
+| 用户设置 | `/api/settings`、`DELETE /api/voice-logs` | 待开发 | `user`、`voice_log` |
+
+技术栈：**Spring Boot 3.3.2**、**MyBatis 3.0.3**、**MySQL 8.0**、JDK 17。统一响应格式见 [`docs/05-接口文档.md`](docs/05-接口文档.md) 第 0.1 节（`code` / `msg` / `data`）。
+
+### 语音解析模块说明
+
+对应需求 **F-VOICE-01/02/03**，接口详见文档 **1.1 语音 / 文本解析**：
+
+- **路径**：`POST /api/voice/parse`
+- **行为**：接收语音转写或键盘输入的自然语言，解析为结构化 JSON 供前端确认卡展示；**仅写入 `voice_log`，不创建事件**（先确认后保存）。
+- **解析能力**：规则式中文 NLP（意图 create/query/update/delete、相对日期、时间段、地点、提醒提前量、重复规则、字段置信度）；后续可替换为真实大模型调用，服务层已解耦。
+- **主要代码**：
+  - `controller/VoiceController.java` — REST 入口
+  - `service/NaturalLanguageParser.java` — 自然语言解析
+  - `service/impl/VoiceParseServiceImpl.java` — 编排解析与落库
+  - `mapper/VoiceLogMapper.xml` — `voice_log` 插入
+
+### 后端快速启动
+
+```bash
+cd Calendar
+mvn spring-boot:run    # 默认端口 8080；需本机或集群内可访问 MySQL
+```
+
+数据库连接在 `src/main/resources/application.yml` 中配置（`spring.datasource.*`）。演示环境未接入登录，写 `voice_log` 使用 `voicecal.default-user-id`（默认 `1`）。
+
+### 接口调用示例
+
+```bash
+curl -X POST http://localhost:8080/api/voice/parse \
+  -H 'Content-Type: application/json' \
+  -d '{
+    "text": "我明天下午三点到五点有个会议，地点在3号会议室，提前15分钟提醒",
+    "now": "2026-05-31T09:56:00+08:00",
+    "tz": "Asia/Shanghai"
+  }'
+```
+
+成功时返回 `code: 1`，`data` 含 `intent`、`title`、`startTime`、`endTime`、`location`、`reminderOffsets`、`confidence` 等字段（与接口文档样例一致）。
+
+## 快速开始（前端原型）
 
 直接用浏览器打开原型即可体验（无需后端，内置模拟解析）：
 
@@ -27,6 +74,8 @@ open prototype/index.html      # macOS
 在原型里点击中央 🎤 按钮，可体验完整链路：
 **语音 → 模拟 LLM 解析 → 解析结果确认卡 → 保存 → 今日视图刷新**。
 （依次演示「添加 / 修改 / 删除 / 查询」四种意图。）
+
+联调后端时，将前端 Axios 的 baseURL 指向 `http://localhost:8080`，调用 `POST /api/voice/parse` 即可替换原型内的模拟解析。
 
 ## 核心设计主张
 
@@ -40,3 +89,7 @@ open prototype/index.html      # macOS
 PRD 第 7 节给出完整映射总表；原型中每个控件都带有蓝色需求编号小标签（如 `F-VOICE-01`），可与文档逐一核对。
 
 > 说明：为方便点击体验，原型把 P1–P7 全部页面集成在单个 `index.html` 中通过页内路由切换；文档中按页面（P1–P7）分别描述。
+
+## 仓库
+
+GitHub：[https://github.com/ChinanBoys/Calendar](https://github.com/ChinanBoys/Calendar)

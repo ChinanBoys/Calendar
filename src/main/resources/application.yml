@@ -1,0 +1,35 @@
+spring:
+  application:
+    name: voicecal
+  datasource:
+    driver-class-name: com.mysql.cj.jdbc.Driver
+    url: jdbc:mysql://db-calendar-mysql.ns-526ouwt8.svc:3306/calendar?useUnicode=true&characterEncoding=utf8&serverTimezone=Asia/Shanghai&useSSL=false&allowPublicKeyRetrieval=true
+    username: root
+    password: fpqzrndc
+  jackson:
+    # LocalDateTime 输出为 ISO8601 字符串（如 2026-06-01T15:00:00），而非时间戳
+    serialization:
+      write-dates-as-timestamps: false
+    default-property-inclusion: non_null
+    time-zone: Asia/Shanghai
+
+server:
+  port: 8080
+
+mybatis:
+  # 开启下划线(snake_case) -> 驼峰(camelCase) 自动映射
+  configuration:
+    map-underscore-to-camel-case: true
+  mapper-locations: classpath:mapper/*.xml
+  type-aliases-package: com.example.hello.entity
+
+# 业务相关配置
+voicecal:
+  # 当前演示未接入鉴权，统一使用该默认用户 ID 写入 voice_log
+  default-user-id: 1
+  # 默认时区，解析相对时间时使用（用户未传 tz 时）
+  default-timezone: Asia/Shanghai
+
+logging:
+  level:
+    com.example.hello.mapper: debug
