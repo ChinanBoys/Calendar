@@ -17,7 +17,13 @@ public class GlobalExceptionHandler {
     private static final Logger log = LoggerFactory.getLogger(GlobalExceptionHandler.class);
 
     @ExceptionHandler(EventServiceImpl.EventNotFoundException.class)
-    public Result<Void> handleNotFound(EventServiceImpl.EventNotFoundException ex) {
+    public Result<Void> handleEventNotFound(EventServiceImpl.EventNotFoundException ex) {
+        return Result.error(ex.getMessage());
+    }
+
+    @ExceptionHandler(com.example.hello.service.impl.SettingsServiceImpl.SettingsNotFoundException.class)
+    public Result<Void> handleSettingsNotFound(
+            com.example.hello.service.impl.SettingsServiceImpl.SettingsNotFoundException ex) {
         return Result.error(ex.getMessage());
     }
 

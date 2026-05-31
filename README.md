@@ -23,7 +23,7 @@
 | 语音解析 | `POST /api/voice/parse` | ✅ 已实现 | `voice_log` |
 | 事件管理 | `POST/GET/PUT/DELETE /api/events`、`/conflicts`、`/restore` | ✅ 已实现 | `event`、`reminder` |
 | 提醒管理 | `GET /api/reminders/upcoming` | ✅ 已实现 | `reminder`、`event` |
-| 用户设置 | `/api/settings`、`DELETE /api/voice-logs` | 待开发 | `user`、`voice_log` |
+| 用户设置 | `GET/PUT /api/settings`、`DELETE /api/voice-logs` | ✅ 已实现 | `user`、`voice_log` |
 
 技术栈：**Spring Boot 3.3.2**、**MyBatis 3.0.3**、**MySQL 8.0**、JDK 17。统一响应格式见 [`docs/05-接口文档.md`](docs/05-接口文档.md) 第 0.1 节（`code` / `msg` / `data`）。
 
@@ -57,6 +57,25 @@
 
 ```bash
 curl "http://localhost:8080/api/reminders/upcoming?hours=24"
+```
+
+### 用户设置模块说明
+
+对应文档 **第 4 节**，已实现：
+
+| 接口 | 说明 |
+| --- | --- |
+| `GET /api/settings` | 查询偏好：`timezone`、`defaultReminderMinutes`、`notifyEnabled`、`voiceRetention` |
+| `PUT /api/settings` | 部分更新上述字段（`voiceRetention` 限 none/7d/forever） |
+| `DELETE /api/voice-logs` | 清除当前用户全部 `voice_log` 记录 |
+
+主要代码：`controller/SettingsController.java`、`controller/VoiceLogController.java`、`service/impl/SettingsServiceImpl.java`、`mapper/UserMapper.xml`。
+
+```bash
+curl http://localhost:8080/api/settings
+curl -X PUT http://localhost:8080/api/settings -H 'Content-Type: application/json' \
+  -d '{"defaultReminderMinutes":30,"notifyEnabled":true,"voiceRetention":"none"}'
+curl -X DELETE http://localhost:8080/api/voice-logs
 ```
 
 ### 语音解析模块说明

@@ -9,4 +9,8 @@
         VALUES (#{userId}, #{rawText}, #{intent}, #{parsedJson}, #{createTime})
     </insert>
 
+    <delete id="deleteByUserId">
+        DELETE FROM voice_log WHERE user_id = #{userId}
+    </delete>
+
 </mapper>
