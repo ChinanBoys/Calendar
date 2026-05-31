@@ -21,11 +21,27 @@
 | 模块 | 接口 | 状态 | 操作表 |
 | --- | --- | --- | --- |
 | 语音解析 | `POST /api/voice/parse` | ✅ 已实现 | `voice_log` |
-| 事件管理 | `/api/events` 等 | 待开发 | `event`、`reminder` |
+| 事件管理 | `POST/GET/PUT/DELETE /api/events`、`/conflicts`、`/restore` | ✅ 已实现 | `event`、`reminder` |
 | 提醒管理 | `/api/reminders/upcoming` | 待开发 | `reminder` |
 | 用户设置 | `/api/settings`、`DELETE /api/voice-logs` | 待开发 | `user`、`voice_log` |
 
 技术栈：**Spring Boot 3.3.2**、**MyBatis 3.0.3**、**MySQL 8.0**、JDK 17。统一响应格式见 [`docs/05-接口文档.md`](docs/05-接口文档.md) 第 0.1 节（`code` / `msg` / `data`）。
+
+### 事件管理模块说明
+
+对应文档 **第 2 节**，已实现全部 7 个接口：
+
+| 接口 | 说明 |
+| --- | --- |
+| `POST /api/events` | 创建事件；冲突检测；写入 `reminder` |
+| `GET /api/events` | 时间范围 / 关键词分页列表 |
+| `GET /api/events/{id}` | 详情（含 `reminders`） |
+| `PUT /api/events/{id}` | 部分字段更新；可重算提醒 |
+| `DELETE /api/events/{id}` | 逻辑删除（`status=0`） |
+| `PUT /api/events/{id}/restore` | 撤销删除 |
+| `GET /api/events/conflicts` | 时间冲突检测 |
+
+主要代码：`controller/EventController.java`、`service/impl/EventServiceImpl.java`、`mapper/EventMapper.xml`。
 
 ### 语音解析模块说明
 
