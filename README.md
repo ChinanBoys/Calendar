@@ -20,7 +20,8 @@
 | [`docs/04-功能标注图.md`](docs/04-功能标注图.md) | **7 张页面功能标注图**：每页截图 + 箭头标注每个控件对应的需求编号 |
 | `docs/页面标注-P1~P7-*.png` | 各页面功能标注图（图片） |
 | [`prototype/index.html`](prototype/index.html) | 可点击高保真原型（含全部页面 P1–P7） |
-| `prototype/annotate.html` | 功能标注图生成器（`?p=home/confirm/...` 切换页面） |
+| [`prototype/annotate.html`](prototype/annotate.html) | 功能标注图生成器（`?p=home/confirm/...` 切换页面） |
+| [`fronter/`](fronter/) | **Vue 3 前端工程**：P1 今日视图已实现，Axios 对接 `/api` |
 
 ## 后端实现进度（Spring Boot + MyBatis）
 
@@ -132,7 +133,76 @@ curl -X POST http://localhost:8080/api/voice/parse \
 
 成功时返回 `code: 1`，`data` 含 `intent`、`title`、`startTime`、`endTime`、`location`、`reminderOffsets`、`confidence` 等字段（与接口文档样例一致）。
 
-## 快速开始（前端原型）
+## 前端实现进度（Vue 3 + Element Plus）
+
+| 页面 | 路径 | 状态 | 说明 |
+| --- | --- | --- | --- |
+| P1 首页 / 今日视图 | `fronter/src/views/TodayView.vue` | ✅ 已实现 | 手机框布局、时间轴、语音交互区 |
+| P2 解析结果确认卡 | — | 待开发 | 语音解析后弹层确认 |
+| P3 日历（周/月） | `fronter/src/views/CalendarView.vue` | 占位 | 路由已预留 |
+| P4 事件详情 | `fronter/src/views/EventDetailView.vue` | 基础版 | 调用 `GET /api/events/{id}` |
+| P5 提醒中心 | `fronter/src/views/RemindersView.vue` | 基础版 | 调用 `GET /api/reminders/upcoming` |
+| P6 搜索 | `fronter/src/views/SearchView.vue` | 基础版 | 调用 `GET /api/events?keyword=` |
+| P7 设置 | `fronter/src/views/SettingsView.vue` | 基础版 | 调用 `GET/PUT /api/settings` |
+
+技术栈：**Vue 3**、**Element Plus**、**Axios**、**Vue Router 4**、**Vite 5**。设计依据 [`docs/页面标注-P1-首页今日视图.png`](docs/页面标注-P1-首页今日视图.png) 与 [`docs/03-页面设计.md`](docs/03-页面设计.md) 第 P1 节；页面仅渲染左侧手机框 UI，不含标注箭头与右侧功能标签。
+
+### P1 今日视图布局
+
+| 区域 | 内容 |
+| --- | --- |
+| **顶栏** | ☰ 菜单、日期标题「今日 · X月X日 周X」、副标题 VoiceCal 语音日历、🔍 搜索、🔔 提醒 |
+| **Tab** | 今日 / 周 / 月（胶囊切换，今日为靛蓝 `#5B6CFF` 激活态） |
+| **时间轴** | 「今日时间轴」+ 事件卡片（左起止时间、右标题/地点；冲突事件红边 + 黄色「时间冲突」标记） |
+| **底部语音区** | 识别文字、中央 🎤 按钮、「⌨ 输入」「我有什么安排」快捷按钮 |
+
+### P1 控件 → 接口映射
+
+| 控件 | 功能编号 | 接口 |
+| --- | --- | --- |
+| ☰ 菜单 | F-SET | `GET /api/settings`（跳转 P7 设置页） |
+| 🔍 搜索 | F-VIEW-05 | `GET /api/events?keyword=` |
+| 🔔 铃铛 | F-REMIND-01 | `GET /api/reminders/upcoming` |
+| 今日 Tab + 时间轴 | F-VIEW-01 | `GET /api/events?from=&to=` |
+| 周 / 月 Tab | F-VIEW-02 | `GET /api/events?from=&to=`（跳转 P3） |
+| 事件卡片点击 | F-VIEW-04 | `GET /api/events/{id}` |
+| 左滑删除 | F-DEL-02 | `DELETE /api/events/{id}` + `PUT /api/events/{id}/restore` 撤销 |
+| 冲突标记 | F-CONFLICT-01 | 前端检测时间重叠（保存前亦可用 `GET /api/events/conflicts`） |
+| 🎤 语音按钮 | F-VOICE-01 | `POST /api/voice/parse` |
+| ⌨ 输入 | F-VOICE-02 | `POST /api/voice/parse` |
+| 我有什么安排 | F-VIEW-03 | `POST /api/voice/parse` → `GET /api/events` |
+
+### 前端目录结构
+
+```
+fronter/src/
+├── api/                    # Axios 封装：events、voice、reminders、settings
+├── components/today/       # EventCard.vue、VoicePanel.vue
+├── views/                  # TodayView 及 P3–P7 页面
+├── router/                 # Vue Router 路由
+├── utils/                  # 日期格式化、冲突检测
+└── mock/demoEvents.js      # 开发环境 API 不可用时的演示数据
+```
+
+### 前端快速启动
+
+```bash
+cd Calendar/fronter
+npm install
+npm run dev          # 默认 http://localhost:3000，/api 代理至 http://localhost:8080
+```
+
+生产构建：
+
+```bash
+cd Calendar/fronter
+npm run build        # 产物输出至 fronter/dist/
+npm run preview      # 本地预览构建结果
+```
+
+Vite 开发代理配置见 `fronter/vite.config.js`：`/api` → `http://localhost:8080`。需先启动后端（`mvn spring-boot:run`）方可联调真实数据；开发模式下接口失败时会回退 `mock/demoEvents.js` 演示数据以预览布局。
+
+## 快速开始（HTML 原型）
 
 直接用浏览器打开原型即可体验（无需后端，内置模拟解析）：
 
@@ -143,8 +213,6 @@ open prototype/index.html      # macOS
 在原型里点击中央 🎤 按钮，可体验完整链路：
 **语音 → 模拟 LLM 解析 → 解析结果确认卡 → 保存 → 今日视图刷新**。
 （依次演示「添加 / 修改 / 删除 / 查询」四种意图。）
-
-联调后端时，将前端 Axios 的 baseURL 指向 `http://localhost:8080`，调用 `POST /api/voice/parse` 即可替换原型内的模拟解析。
 
 ## 核心设计主张
 

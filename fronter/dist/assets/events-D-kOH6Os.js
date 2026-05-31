@@ -1,0 +1,1 @@
+import{r as t}from"./request-D5E0Jpux.js";function r(e){return t.get("/events",{params:e})}function s(e){return t.get(`/events/${e}`)}function u(e){return t.delete(`/events/${e}`)}function o(e){return t.put(`/events/${e}/restore`)}export{s as a,u as d,r as f,o as r};
