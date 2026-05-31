@@ -3,6 +3,12 @@
 > 以语音交互为核心的日历管理工具：**开口即记、说完即成**。
 > 一句「我明天下午三点到五点有个会议」即可完成添加，并支持语音查看 / 修改 / 删除 / 提醒。
 
+## 参赛作品 Demo 视频
+
+**参赛作品 demo 展示 · 小羊走刀口**（小红书）
+
+🔗 [点击观看 Demo 视频](https://www.xiaohongshu.com/discovery/item/6a1c59e6000000003601a674?source=webshare&xhsshare=pc_web&xsec_token=ABBBefrz-TsWUh2yD_hI0Lv7CHySYyNdQ1r5bQknndGUU=&xsec_source=pc_share)
+
 ## 交付物清单
 
 | 文件 | 内容 |
