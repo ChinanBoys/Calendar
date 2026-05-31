@@ -1,0 +1,7 @@
+# 复制本文件为 application-local.yml，并填入真实 API Key（该文件已被 .gitignore 忽略，不会上传到 GitHub）
+#
+#   cp application-local.yml.example application-local.yml
+#
+voicecal:
+  llm:
+    api-key: sk-your-deepseek-api-key-here

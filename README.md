@@ -33,10 +33,12 @@
 
 - **路径**：`POST /api/voice/parse`
 - **行为**：接收语音转写或键盘输入的自然语言，解析为结构化 JSON 供前端确认卡展示；**仅写入 `voice_log`，不创建事件**（先确认后保存）。
-- **解析能力**：规则式中文 NLP（意图 create/query/update/delete、相对日期、时间段、地点、提醒提前量、重复规则、字段置信度）；后续可替换为真实大模型调用，服务层已解耦。
+- **解析能力**：默认使用 **DeepSeek V4**（`deepseek-v4-pro`）将自然语言译为结构化 JSON；API Key 写在本地 `application-local.yml`（**不会提交 GitHub**）。LLM 失败时可回退规则解析器（`voicecal.llm.fallback-to-rules`）。
 - **主要代码**：
   - `controller/VoiceController.java` — REST 入口
-  - `service/NaturalLanguageParser.java` — 自然语言解析
+  - `llm/DeepSeekVoiceParser.java` — DeepSeek V4 解析
+  - `llm/DeepSeekClient.java` — DeepSeek HTTP 客户端
+  - `service/NaturalLanguageParser.java` — 规则解析（LLM 回退）
   - `service/impl/VoiceParseServiceImpl.java` — 编排解析与落库
   - `mapper/VoiceLogMapper.xml` — `voice_log` 插入
 
@@ -48,6 +50,16 @@ mvn spring-boot:run    # 默认端口 8080；需本机或集群内可访问 MySQ
 ```
 
 数据库连接在 `src/main/resources/application.yml` 中配置（`spring.datasource.*`）。演示环境未接入登录，写 `voice_log` 使用 `voicecal.default-user-id`（默认 `1`）。
+
+### DeepSeek API Key（本地配置，勿提交仓库）
+
+```bash
+cd Calendar/src/main/resources
+cp application-local.yml.example application-local.yml
+# 编辑 application-local.yml，填入 voicecal.llm.api-key
+```
+
+`application-local.yml` 已在 `.gitignore` 中忽略；仓库仅保留 `application-local.yml.example` 模板。克隆仓库后需自行创建本地文件才能启用 LLM 解析。
 
 ### 接口调用示例
 

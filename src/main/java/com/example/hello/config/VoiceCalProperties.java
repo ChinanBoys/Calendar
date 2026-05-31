@@ -16,6 +16,9 @@ public class VoiceCalProperties {
     /** 默认时区（用户未传 tz 时使用） */
     private String defaultTimezone = "Asia/Shanghai";
 
+    /** DeepSeek V4 等大模型配置 */
+    private LlmProperties llm = new LlmProperties();
+
     public Long getDefaultUserId() {
         return defaultUserId;
     }
@@ -30,5 +33,13 @@ public class VoiceCalProperties {
 
     public void setDefaultTimezone(String defaultTimezone) {
         this.defaultTimezone = defaultTimezone;
+    }
+
+    public LlmProperties getLlm() {
+        return llm;
+    }
+
+    public void setLlm(LlmProperties llm) {
+        this.llm = llm;
     }
 }

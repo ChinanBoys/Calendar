@@ -1,6 +1,9 @@
 spring:
   application:
     name: voicecal
+  # 加载本地私密配置（API Key 等），文件不存在时不报错
+  config:
+    import: optional:classpath:application-local.yml
   datasource:
     driver-class-name: com.mysql.cj.jdbc.Driver
     url: jdbc:mysql://db-calendar-mysql.ns-526ouwt8.svc:3306/calendar?useUnicode=true&characterEncoding=utf8&serverTimezone=Asia/Shanghai&useSSL=false&allowPublicKeyRetrieval=true
@@ -29,6 +32,14 @@ voicecal:
   default-user-id: 1
   # 默认时区，解析相对时间时使用（用户未传 tz 时）
   default-timezone: Asia/Shanghai
+  # DeepSeek V4 大模型解析（API Key 写在 application-local.yml，勿提交仓库）
+  llm:
+    enabled: true
+    base-url: https://api.deepseek.com
+    model: deepseek-v4-pro
+    # LLM 失败时是否回退到规则解析器
+    fallback-to-rules: true
+    timeout-seconds: 60
 
 logging:
   level:
