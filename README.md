@@ -22,7 +22,7 @@
 | --- | --- | --- | --- |
 | 语音解析 | `POST /api/voice/parse` | ✅ 已实现 | `voice_log` |
 | 事件管理 | `POST/GET/PUT/DELETE /api/events`、`/conflicts`、`/restore` | ✅ 已实现 | `event`、`reminder` |
-| 提醒管理 | `/api/reminders/upcoming` | 待开发 | `reminder` |
+| 提醒管理 | `GET /api/reminders/upcoming` | ✅ 已实现 | `reminder`、`event` |
 | 用户设置 | `/api/settings`、`DELETE /api/voice-logs` | 待开发 | `user`、`voice_log` |
 
 技术栈：**Spring Boot 3.3.2**、**MyBatis 3.0.3**、**MySQL 8.0**、JDK 17。统一响应格式见 [`docs/05-接口文档.md`](docs/05-接口文档.md) 第 0.1 节（`code` / `msg` / `data`）。
@@ -42,6 +42,22 @@
 | `GET /api/events/conflicts` | 时间冲突检测 |
 
 主要代码：`controller/EventController.java`、`service/impl/EventServiceImpl.java`、`mapper/EventMapper.xml`。
+
+### 提醒管理模块说明
+
+对应文档 **第 3 节**，已实现：
+
+| 接口 | 说明 |
+| --- | --- |
+| `GET /api/reminders/upcoming` | 查询未来 N 小时内即将到来的提醒（`hours` 默认 24） |
+
+`reminder` 联表 `event`（`event.status=1`），按 `fire_time` 升序返回 `id`、`eventId`、`eventTitle`、`startTime`、`offsetMinutes`、`fireTime`、`sent`。
+
+主要代码：`controller/ReminderController.java`、`service/impl/ReminderServiceImpl.java`、`mapper/ReminderMapper.xml`（`selectUpcoming`）。
+
+```bash
+curl "http://localhost:8080/api/reminders/upcoming?hours=24"
+```
 
 ### 语音解析模块说明
 
