@@ -45,7 +45,7 @@ public class EventServiceImpl implements EventService {
         Long userId = currentUserId();
         LocalDateTime start = DateTimeUtil.parse(request.getStartTime());
         LocalDateTime end = DateTimeUtil.parse(request.getEndTime());
-        validateTimeRange(start, end);
+        validateTimeRange(start, end, request.getAllDay());
 
         boolean force = Boolean.TRUE.equals(request.getForce());
         List<ConflictEventVO> conflicts = eventMapper.selectConflicts(userId, start, end, null);
@@ -111,11 +111,10 @@ public class EventServiceImpl implements EventService {
         Event existing = requireActiveEvent(id);
         Long userId = currentUserId();
 
-        LocalDateTime start = request.getStartTime() != null
-                ? DateTimeUtil.parse(request.getStartTime()) : existing.getStartTime();
-        LocalDateTime end = request.getEndTime() != null
-                ? DateTimeUtil.parse(request.getEndTime()) : existing.getEndTime();
-        validateTimeRange(start, end);
+        LocalDateTime start = resolveStartTime(request, existing);
+        LocalDateTime end = resolveEndTime(request, existing);
+        Boolean allDay = request.getAllDay() != null ? request.getAllDay() : existing.getAllDay();
+        validateTimeRange(start, end, allDay);
 
         boolean force = Boolean.TRUE.equals(request.getForce());
         List<ConflictEventVO> conflicts = eventMapper.selectConflicts(userId, start, end, id);
@@ -129,10 +128,10 @@ public class EventServiceImpl implements EventService {
         if (request.getTitle() != null) {
             patch.setTitle(request.getTitle());
         }
-        if (request.getStartTime() != null) {
+        if (request.getStartTime() != null && !request.getStartTime().isBlank()) {
             patch.setStartTime(start);
         }
-        if (request.getEndTime() != null) {
+        if (request.getEndTime() != null && !request.getEndTime().isBlank()) {
             patch.setEndTime(end);
         }
         if (request.getAllDay() != null) {
@@ -189,7 +188,7 @@ public class EventServiceImpl implements EventService {
     public List<ConflictEventVO> findConflicts(String startTime, String endTime, Long excludeId) {
         LocalDateTime start = DateTimeUtil.parse(startTime);
         LocalDateTime end = DateTimeUtil.parse(endTime);
-        validateTimeRange(start, end);
+        validateTimeRange(start, end, false);
         return eventMapper.selectConflicts(currentUserId(), start, end, excludeId);
     }
 
@@ -273,13 +272,41 @@ public class EventServiceImpl implements EventService {
         return properties.getDefaultUserId();
     }
 
-    private void validateTimeRange(LocalDateTime start, LocalDateTime end) {
+    /**
+     * 校验事件时间范围：开始时间不得晚于结束时间；非全天事件结束时间必须严格晚于开始时间。
+     */
+    private void validateTimeRange(LocalDateTime start, LocalDateTime end, Boolean allDay) {
         if (start == null || end == null) {
             throw new IllegalArgumentException("开始/结束时间不能为空");
         }
-        if (!end.isAfter(start) && !end.isEqual(start)) {
-            throw new IllegalArgumentException("结束时间必须大于或等于开始时间");
+        if (start.isAfter(end)) {
+            throw new IllegalArgumentException("开始时间不能晚于结束时间");
         }
+        if (!Boolean.TRUE.equals(allDay) && !end.isAfter(start)) {
+            throw new IllegalArgumentException("结束时间必须晚于开始时间");
+        }
+    }
+
+    private LocalDateTime resolveStartTime(UpdateEventRequest request, Event existing) {
+        if (request.getStartTime() == null || request.getStartTime().isBlank()) {
+            return existing.getStartTime();
+        }
+        LocalDateTime parsed = DateTimeUtil.parse(request.getStartTime());
+        if (parsed == null) {
+            throw new IllegalArgumentException("startTime 格式无效");
+        }
+        return parsed;
+    }
+
+    private LocalDateTime resolveEndTime(UpdateEventRequest request, Event existing) {
+        if (request.getEndTime() == null || request.getEndTime().isBlank()) {
+            return existing.getEndTime();
+        }
+        LocalDateTime parsed = DateTimeUtil.parse(request.getEndTime());
+        if (parsed == null) {
+            throw new IllegalArgumentException("endTime 格式无效");
+        }
+        return parsed;
     }
 
     private EventVO toEventVO(Event event) {
