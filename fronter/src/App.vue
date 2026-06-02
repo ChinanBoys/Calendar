@@ -5,7 +5,10 @@ import { RouterView } from 'vue-router'
 <template>
   <div class="app-shell">
     <RouterView v-slot="{ Component, route }">
-      <component :is="Component" v-if="route.name === 'today'" />
+      <component
+        :is="Component"
+        v-if="['today', 'calendar', 'event-detail', 'reminders', 'search', 'settings'].includes(route.name)"
+      />
       <div v-else class="page-wrap">
         <component :is="Component" />
       </div>

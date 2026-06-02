@@ -137,15 +137,39 @@ curl -X POST http://localhost:8080/api/voice/parse \
 
 | 页面 | 路径 | 状态 | 说明 |
 | --- | --- | --- | --- |
-| P1 首页 / 今日视图 | `fronter/src/views/TodayView.vue` | ✅ 已实现 | 手机框布局、时间轴、语音交互区 |
-| P2 解析结果确认卡 | — | 待开发 | 语音解析后弹层确认 |
-| P3 日历（周/月） | `fronter/src/views/CalendarView.vue` | 占位 | 路由已预留 |
-| P4 事件详情 | `fronter/src/views/EventDetailView.vue` | 基础版 | 调用 `GET /api/events/{id}` |
-| P5 提醒中心 | `fronter/src/views/RemindersView.vue` | 基础版 | 调用 `GET /api/reminders/upcoming` |
-| P6 搜索 | `fronter/src/views/SearchView.vue` | 基础版 | 调用 `GET /api/events?keyword=` |
-| P7 设置 | `fronter/src/views/SettingsView.vue` | 基础版 | 调用 `GET/PUT /api/settings` |
+| P1 首页 / 今日视图 | `fronter/src/views/TodayView.vue` | ✅ 布局完成 | 手机框、时间轴、语音交互区；点击事件进 P4 |
+| P2 解析结果确认卡 | `fronter/src/components/today/ConfirmCard.vue` | ✅ 布局完成 | 语音/文本解析后底部弹出；含冲突提示与保存 |
+| P3 日历（周/月） | `fronter/src/views/CalendarView.vue` | ✅ 布局完成 | 月历网格、当日安排、悬浮 🎤；从 P1 Tab 进入 |
+| P4 事件详情 / 编辑 | `fronter/src/views/EventDetailView.vue` | ✅ 布局完成 | 表单字段、保存/删除；从 P1 事件卡进入 |
+| P5 提醒中心 | `fronter/src/views/RemindersView.vue` | ✅ 布局完成 | 即将到来 + 历史提醒；从 P1 🔔 进入 |
+| P6 搜索 | `fronter/src/views/SearchView.vue` | ✅ 布局完成 | 搜索框 + 结果列表；从 P1 🔍 进入 |
+| P7 设置 | `fronter/src/views/SettingsView.vue` | ✅ 布局完成 | 提醒/通用/隐私/账户分组；从 P1 ☰ 进入 |
 
-技术栈：**Vue 3**、**Element Plus**、**Axios**、**Vue Router 4**、**Vite 5**。设计依据 [`docs/页面标注-P1-首页今日视图.png`](docs/页面标注-P1-首页今日视图.png) 与 [`docs/03-页面设计.md`](docs/03-页面设计.md) 第 P1 节；页面仅渲染左侧手机框 UI，不含标注箭头与右侧功能标签。
+技术栈：**Vue 3**、**Element Plus**、**Axios**、**Vue Router 4**、**Vite 5**。设计依据 `docs/页面标注-P1~P7-*.png` 与 [`docs/03-页面设计.md`](docs/03-页面设计.md)；各页仅渲染左侧手机框 UI，不含标注箭头与右侧功能标签。**当前 P1–P7 均已完成布局，接口对接待后续迭代。**
+
+### P2 解析确认卡布局
+
+语音/文本解析（`intent=create/update/delete`）后，在 P1 手机框内自底部弹出：标题栏、红色冲突提示条、原话、字段列表（低置信度黄标）、重说/手动修改/确认保存/取消。
+
+### P3 日历视图布局
+
+顶栏（返回 + 月份 + 周/月切换）、月历/周历网格（选中蓝圈、事件橙点）、「X月X日 安排」列表、右下角悬浮 🎤。
+
+### P4 事件详情布局
+
+顶栏（返回 + 标题 + 🎤改）、标题/全天/起止时间/地点/提醒/重复/备注表单、「保存修改」「删除此事件」按钮。
+
+### P5 提醒中心布局
+
+顶栏「提醒」、即将到来与历史提醒两组卡片（红色闹钟图标 + 标题 + 副标题）。
+
+### P6 搜索布局
+
+返回 + 圆角搜索框（含 🎤）、「结果」列表（左日期时间、右标题地点）。
+
+### P7 设置布局
+
+顶栏「设置」、提醒/通用/隐私/账户四组设置项（白底圆角 cell + 右箭头）。
 
 ### P1 今日视图布局
 
@@ -177,11 +201,12 @@ curl -X POST http://localhost:8080/api/voice/parse \
 ```
 fronter/src/
 ├── api/                    # Axios 封装：events、voice、reminders、settings
-├── components/today/       # EventCard.vue、VoicePanel.vue
-├── views/                  # TodayView 及 P3–P7 页面
+├── components/today/       # EventCard、VoicePanel、ConfirmCard
+├── components/calendar/    # AgendaEventItem
+├── views/                  # P1–P7 全部页面
 ├── router/                 # Vue Router 路由
-├── utils/                  # 日期格式化、冲突检测
-└── mock/demoEvents.js      # 开发环境 API 不可用时的演示数据
+├── utils/                  # 日期、日历、冲突检测
+└── mock/                   # 各页演示数据（布局预览）
 ```
 
 ### 前端快速启动
