@@ -8,6 +8,15 @@ export function formatTime(isoString) {
   return `${h}:${m}`
 }
 
+/** 格式：6月1日 15:00 */
+export function formatDateTime(isoString) {
+  if (!isoString) return ''
+  const date = new Date(isoString)
+  const month = date.getMonth() + 1
+  const day = date.getDate()
+  return `${month}月${day}日 ${formatTime(isoString)}`
+}
+
 export function formatTodayHeader(date = new Date()) {
   const month = date.getMonth() + 1
   const day = date.getDate()

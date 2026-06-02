@@ -49,3 +49,7 @@ export const DEMO_EVENTS = [
     status: 1,
   },
 ]
+
+export function getDemoEventById(id) {
+  return DEMO_EVENTS.find((e) => e.id === Number(id)) ?? DEMO_EVENTS[2]
+}
