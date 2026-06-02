@@ -5,6 +5,7 @@ import { Fold, Search, Bell } from '@element-plus/icons-vue'
 import { ElMessageBox, ElNotification } from 'element-plus'
 import EventCard from '@/components/today/EventCard.vue'
 import VoicePanel from '@/components/today/VoicePanel.vue'
+import ConfirmCard from '@/components/today/ConfirmCard.vue'
 import { fetchEvents, deleteEvent, restoreEvent } from '@/api/events'
 import { fetchUpcomingReminders } from '@/api/reminders'
 import { formatTodayHeader, getDayRange } from '@/utils/date'
@@ -20,6 +21,10 @@ const reminderCount = ref(0)
 const todayHeader = computed(() => formatTodayHeader(new Date()))
 
 const conflictIds = computed(() => findConflictingEventIds(events.value))
+
+const showConfirm = ref(false)
+const parseResult = ref(null)
+const voicePanelRef = ref(null)
 
 /** F-VIEW-01 — 加载今日事件 */
 async function loadTodayEvents() {
@@ -109,6 +114,23 @@ function onVoiceParsed() {
   loadTodayEvents()
 }
 
+/** 语音解析完成 → 打开 P2 确认卡 */
+function onVoiceConfirm(data) {
+  parseResult.value = data
+  showConfirm.value = true
+}
+
+function onConfirmSaved() {
+  showConfirm.value = false
+  parseResult.value = null
+  loadTodayEvents()
+}
+
+function onConfirmRetalk() {
+  showConfirm.value = false
+  voicePanelRef.value?.promptVoiceInput(parseResult.value?.rawText ?? '')
+}
+
 onMounted(() => {
   loadTodayEvents()
   loadReminderBadge()
@@ -172,7 +194,19 @@ onMounted(() => {
     </section>
 
     <!-- 语音交互区 -->
-    <VoicePanel @parsed="onVoiceParsed" />
+    <VoicePanel
+      ref="voicePanelRef"
+      @parsed="onVoiceParsed"
+      @confirm="onVoiceConfirm"
+    />
+
+    <!-- P2 解析确认卡 -->
+    <ConfirmCard
+      v-model:visible="showConfirm"
+      :parse-result="parseResult"
+      @saved="onConfirmSaved"
+      @retalk="onConfirmRetalk"
+    />
   </div>
 </template>
 

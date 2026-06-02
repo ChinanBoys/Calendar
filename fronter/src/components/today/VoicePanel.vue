@@ -5,12 +5,13 @@ import { ElMessage, ElMessageBox } from 'element-plus'
 import { parseVoiceText } from '@/api/voice'
 import { fetchEvents } from '@/api/events'
 import { nowIso } from '@/utils/date'
+import { DEMO_PARSE_RESULT } from '@/mock/demoParseResult'
 
-const emit = defineEmits(['parsed'])
+const emit = defineEmits(['parsed', 'confirm'])
 
 const recognizing = ref(false)
 const parsing = ref(false)
-const recognizedText = ref('识别: "我明天下午三点到五点有个会议"')
+const recognizedText = ref('')
 
 /** F-VOICE-01 — 语音按钮（演示：弹出输入模拟 ASR 转写） */
 async function onVoiceClick() {
@@ -77,20 +78,47 @@ async function doParse(text) {
 
     if (data.intent === 'query') {
       await handleQueryIntent(data)
-    } else if (data.intent === 'create') {
-      ElMessage.success(`已解析：${data.title || '新事件'}，确认卡功能待 P2 页面实现`)
+    } else if (['create', 'update', 'delete'].includes(data.intent)) {
+      emit('confirm', data)
     } else {
-      ElMessage.info(`解析意图：${data.intent}`)
+      ElMessage.info(`解析意图：${data.intent || 'unknown'}`)
     }
 
     emit('parsed', data)
   } catch {
-    /* 错误已在拦截器提示 */
+    if (import.meta.env.DEV) {
+      const demo = { ...DEMO_PARSE_RESULT, rawText: text }
+      emit('confirm', demo)
+      emit('parsed', demo)
+    }
   } finally {
     parsing.value = false
     recognizing.value = false
   }
 }
+
+/** 供父组件在「重说」后再次唤起语音输入 */
+async function promptVoiceInput(defaultText = '') {
+  try {
+    const { value } = await ElMessageBox.prompt(
+      '请重新输入或修正语音内容',
+      '重说',
+      {
+        confirmButtonText: '解析',
+        cancelButtonText: '取消',
+        inputPlaceholder: '我明天下午三点到五点有个会议',
+        inputValue: defaultText,
+      },
+    )
+    if (!value?.trim()) return
+    recognizedText.value = `识别: "${value.trim()}"`
+    await doParse(value.trim())
+  } catch {
+    /* 取消 */
+  }
+}
+
+defineExpose({ promptVoiceInput })
 
 /** F-VIEW-03 — 查询意图 → GET /api/events */
 async function handleQueryIntent(parseResult) {
