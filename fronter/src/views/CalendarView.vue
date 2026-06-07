@@ -1,8 +1,10 @@
 <script setup>
-import { ref, computed, watch } from 'vue'
+import { ref, computed, watch, onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { ArrowLeft, ArrowRight, Microphone } from '@element-plus/icons-vue'
 import AgendaEventItem from '@/components/calendar/AgendaEventItem.vue'
+import { fetchEvents } from '@/api/events'
+import { filterEventsForDay } from '@/utils/date'
 import {
   WEEKDAY_LABELS,
   buildMonthGrid,
@@ -13,15 +15,20 @@ import {
   formatMonthTitle,
   formatDayAgendaTitle,
   toDateKey,
+  getWeekRange,
+  getMonthGridRange,
+  groupEventsByDateKey,
 } from '@/utils/calendar'
-import { DEMO_EVENT_MAP } from '@/mock/demoCalendarEvents'
 
 const route = useRoute()
 const router = useRouter()
 
+const today = new Date()
 const viewMode = ref(route.query.view === 'month' ? 'month' : 'week')
-const viewDate = ref(new Date(2026, 5, 1))
-const selectedDate = ref(new Date(2026, 5, 1))
+const viewDate = ref(new Date(today))
+const selectedDate = ref(new Date(today))
+const events = ref([])
+const loading = ref(false)
 
 watch(
   () => route.query.view,
@@ -40,12 +47,35 @@ const calendarCells = computed(() =>
 
 const agendaTitle = computed(() => formatDayAgendaTitle(selectedDate.value))
 
-const dayEvents = computed(() => {
-  const key = toDateKey(selectedDate.value)
-  return DEMO_EVENT_MAP[key] ?? []
-})
+const eventMap = computed(() => groupEventsByDateKey(events.value))
 
-const datesWithEvents = computed(() => new Set(Object.keys(DEMO_EVENT_MAP)))
+const dayEvents = computed(() =>
+  filterEventsForDay(events.value, selectedDate.value),
+)
+
+const datesWithEvents = computed(() => new Set(Object.keys(eventMap.value)))
+
+/** F-VIEW-02 — 按周/月范围加载后端事件 */
+async function loadEvents() {
+  loading.value = true
+  try {
+    const range = viewMode.value === 'month'
+      ? getMonthGridRange(viewDate.value)
+      : getWeekRange(viewDate.value)
+
+    const res = await fetchEvents({
+      from: range.from,
+      to: range.to,
+      page: 1,
+      pageSize: 200,
+    })
+    events.value = res.data?.rows ?? []
+  } catch {
+    events.value = []
+  } finally {
+    loading.value = false
+  }
+}
 
 function hasEvent(date) {
   return datesWithEvents.value.has(toDateKey(date))
@@ -89,6 +119,14 @@ function goBack() {
 function onEventClick(event) {
   router.push(`/events/${event.id}`)
 }
+
+watch([viewMode, viewDate], () => {
+  loadEvents()
+})
+
+onMounted(() => {
+  loadEvents()
+})
 </script>
 
 <template>
@@ -118,7 +156,7 @@ function onEventClick(event) {
     </header>
 
     <!-- 日历区 -->
-    <section class="calendar-section">
+    <section v-loading="loading" class="calendar-section">
       <div class="month-nav">
         <button class="nav-btn" aria-label="上一页" @click="onPrev">
           <el-icon :size="16"><ArrowLeft /></el-icon>
@@ -163,7 +201,7 @@ function onEventClick(event) {
           @click="onEventClick"
         />
       </div>
-      <div v-else class="agenda-empty">这一天还没有安排</div>
+      <div v-else-if="!loading" class="agenda-empty">这一天还没有安排</div>
     </section>
 
     <!-- 悬浮语音按钮 -->
@@ -249,6 +287,7 @@ function onEventClick(event) {
   flex-shrink: 0;
   background: #f8f9ff;
   border-bottom: 1px solid #eef0f5;
+  min-height: 120px;
 }
 
 .month-nav {

@@ -71,4 +71,40 @@ export function buildWeekGrid(viewDate) {
   })
 }
 
+/** 周视图查询范围：当周周一至周日 */
+export function getWeekRange(date) {
+  const start = startOfWeek(date)
+  const end = addDays(start, 6)
+  return {
+    from: `${toDateKey(start)}T00:00:00`,
+    to: `${toDateKey(end)}T23:59:59`,
+  }
+}
+
+/** 月视图查询范围：月历网格首尾日期（含前后月补位） */
+export function getMonthGridRange(viewDate) {
+  const grid = buildMonthGrid(viewDate)
+  const first = grid[0].date
+  const last = grid[grid.length - 1].date
+  return {
+    from: `${toDateKey(first)}T00:00:00`,
+    to: `${toDateKey(last)}T23:59:59`,
+  }
+}
+
+/** 按 startTime 日期分组事件 */
+export function groupEventsByDateKey(events) {
+  const map = {}
+  for (const e of events) {
+    const key = String(e.startTime || '').slice(0, 10)
+    if (!key) continue
+    if (!map[key]) map[key] = []
+    map[key].push(e)
+  }
+  for (const key of Object.keys(map)) {
+    map[key].sort((a, b) => new Date(a.startTime) - new Date(b.startTime))
+  }
+  return map
+}
+
 export { WEEKDAY_LABELS }
