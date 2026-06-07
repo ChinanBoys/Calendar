@@ -8,9 +8,8 @@ import VoicePanel from '@/components/today/VoicePanel.vue'
 import ConfirmCard from '@/components/today/ConfirmCard.vue'
 import { fetchEvents, deleteEvent, restoreEvent } from '@/api/events'
 import { fetchUpcomingReminders } from '@/api/reminders'
-import { formatTodayHeader, getDayRange } from '@/utils/date'
+import { formatTodayHeader, getDayRange, filterEventsForDay } from '@/utils/date'
 import { findConflictingEventIds } from '@/utils/conflict'
-import { DEMO_EVENTS } from '@/mock/demoEvents'
 
 const router = useRouter()
 
@@ -26,15 +25,17 @@ const showConfirm = ref(false)
 const parseResult = ref(null)
 const voicePanelRef = ref(null)
 
-/** F-VIEW-01 — 加载今日事件 */
+/** F-VIEW-01 — 加载今日事件（严格按当天日期过滤，仅展示后端真实数据） */
 async function loadTodayEvents() {
   loading.value = true
+  const today = new Date()
   try {
-    const { from, to } = getDayRange()
+    const { from, to } = getDayRange(today)
     const res = await fetchEvents({ from, to, page: 1, pageSize: 50 })
-    events.value = res.data?.rows ?? []
+    const rows = res.data?.rows ?? []
+    events.value = filterEventsForDay(rows, today)
   } catch {
-    events.value = import.meta.env.DEV ? DEMO_EVENTS : []
+    events.value = []
   } finally {
     loading.value = false
   }

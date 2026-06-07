@@ -24,14 +24,30 @@ export function formatTodayHeader(date = new Date()) {
   return `今日 · ${month}月${day}日 ${weekday}`
 }
 
+/** YYYY-MM-DD，用于与后端 startTime 日期部分比对 */
+export function getDateKey(date = new Date()) {
+  const pad = (n) => String(n).padStart(2, '0')
+  return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}`
+}
+
+export function getEventDateKey(isoString) {
+  if (!isoString) return ''
+  return String(isoString).slice(0, 10)
+}
+
+/** 仅保留「开始日期 = 当天」的事件，并按开始时间升序 */
+export function filterEventsForDay(events, date = new Date()) {
+  const dayKey = getDateKey(date)
+  return [...events]
+    .filter((e) => getEventDateKey(e.startTime) === dayKey)
+    .sort((a, b) => new Date(a.startTime) - new Date(b.startTime))
+}
+
 export function getDayRange(date = new Date()) {
-  const start = new Date(date)
-  start.setHours(0, 0, 0, 0)
-  const end = new Date(date)
-  end.setHours(23, 59, 59, 999)
+  const dayKey = getDateKey(date)
   return {
-    from: toIsoLocal(start),
-    to: toIsoLocal(end),
+    from: `${dayKey}T00:00:00`,
+    to: `${dayKey}T23:59:59`,
   }
 }
 

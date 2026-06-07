@@ -16,7 +16,8 @@ request.interceptors.response.use(
     return data
   },
   (error) => {
-    ElMessage.error(error.message || '网络错误')
+    const msg = error.response?.data?.msg || error.message || '网络错误'
+    ElMessage.error(msg)
     return Promise.reject(error)
   },
 )

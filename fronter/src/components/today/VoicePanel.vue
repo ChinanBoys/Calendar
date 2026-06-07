@@ -5,7 +5,6 @@ import { ElMessage, ElMessageBox } from 'element-plus'
 import { parseVoiceText } from '@/api/voice'
 import { fetchEvents } from '@/api/events'
 import { nowIso } from '@/utils/date'
-import { DEMO_PARSE_RESULT } from '@/mock/demoParseResult'
 
 const emit = defineEmits(['parsed', 'confirm'])
 
@@ -86,11 +85,7 @@ async function doParse(text) {
 
     emit('parsed', data)
   } catch {
-    if (import.meta.env.DEV) {
-      const demo = { ...DEMO_PARSE_RESULT, rawText: text }
-      emit('confirm', demo)
-      emit('parsed', demo)
-    }
+    /* 错误已在 request 拦截器提示 */
   } finally {
     parsing.value = false
     recognizing.value = false
