@@ -2,11 +2,13 @@
 import { ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { ArrowLeft, Microphone } from '@element-plus/icons-vue'
-import { getDemoEventById } from '@/mock/demoEvents'
+import { ElMessage } from 'element-plus'
+import { fetchEventById } from '@/api/events'
 import { formatDateTime } from '@/utils/date'
 
 const route = useRoute()
 const router = useRouter()
+const loading = ref(false)
 
 const REMINDER_OPTIONS = [
   { label: '不提醒', value: 0 },
@@ -34,21 +36,43 @@ const form = ref({
   note: '',
 })
 
-function loadDemoEvent() {
-  const event = getDemoEventById(route.params.id)
+function getReminderMinutes(event) {
+  const firstReminder = Array.isArray(event.reminders) ? event.reminders[0] : null
+  return firstReminder?.offsetMinutes ?? 0
+}
+
+function fillForm(event) {
   form.value = {
-    title: event.title,
+    title: event.title ?? '',
     allDay: event.allDay ?? false,
     startTime: formatDateTime(event.startTime),
     endTime: formatDateTime(event.endTime),
     location: event.location ?? '',
-    reminderMinutes: 15,
+    reminderMinutes: getReminderMinutes(event),
     recurrence: event.recurrence ?? 'none',
     note: event.note ?? '',
   }
 }
 
-watch(() => route.params.id, loadDemoEvent, { immediate: true })
+async function loadEventDetail(id) {
+  if (!id) return
+
+  loading.value = true
+  try {
+    const res = await fetchEventById(id)
+    if (!res.data) {
+      ElMessage.warning('事件不存在或已被删除')
+      return
+    }
+    fillForm(res.data)
+  } catch {
+    /* 错误已由请求拦截器提示 */
+  } finally {
+    loading.value = false
+  }
+}
+
+watch(() => route.params.id, loadEventDetail, { immediate: true })
 
 function goBack() {
   router.back()
@@ -70,7 +94,7 @@ function goBack() {
     </header>
 
     <!-- 表单 -->
-    <div class="form-body">
+    <div v-loading="loading" class="form-body">
       <div class="form-item">
         <label class="form-label">标题</label>
         <el-input v-model="form.title" class="form-input" placeholder="请输入标题" />
