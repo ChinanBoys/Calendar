@@ -1,9 +1,63 @@
 <script setup>
+import { ref, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { ArrowLeft, AlarmClock } from '@element-plus/icons-vue'
-import { DEMO_UPCOMING_REMINDERS, DEMO_HISTORY_REMINDERS } from '@/mock/demoReminders'
+import { fetchUpcomingReminders } from '@/api/reminders'
+import { formatDateTime, formatTime, parseLocalDateTime } from '@/utils/date'
 
 const router = useRouter()
+const loading = ref(false)
+const reminders = ref([])
+
+function isSameDay(a, b) {
+  return (
+    a.getFullYear() === b.getFullYear() &&
+    a.getMonth() === b.getMonth() &&
+    a.getDate() === b.getDate()
+  )
+}
+
+function formatRelativeDateTime(value) {
+  const time = parseLocalDateTime(value)
+  if (!Number.isFinite(time)) return ''
+
+  const date = new Date(time)
+  const today = new Date()
+  const tomorrow = new Date(today)
+  tomorrow.setDate(today.getDate() + 1)
+
+  if (isSameDay(date, today)) return `今天 ${formatTime(value)}`
+  if (isSameDay(date, tomorrow)) return `明天 ${formatTime(value)}`
+  return formatDateTime(value)
+}
+
+function formatReminderTitle(item) {
+  return item.eventTitle || '未命名事件'
+}
+
+function formatReminderSubtitle(item) {
+  const parts = []
+
+  const fireTime = formatRelativeDateTime(item.fireTime)
+  if (fireTime) parts.push(`${fireTime}提醒`)
+
+  const startTime = formatRelativeDateTime(item.startTime)
+  if (startTime) parts.push(`事件开始 ${startTime}`)
+
+  return parts.join(' · ')
+}
+
+async function loadReminders() {
+  loading.value = true
+  try {
+    const res = await fetchUpcomingReminders(24)
+    reminders.value = res.data ?? []
+  } catch {
+    reminders.value = []
+  } finally {
+    loading.value = false
+  }
+}
 
 function goBack() {
   router.back()
@@ -14,6 +68,8 @@ function onItemClick(item) {
     router.push(`/events/${item.eventId}`)
   }
 }
+
+onMounted(loadReminders)
 </script>
 
 <template>
@@ -30,11 +86,11 @@ function onItemClick(item) {
     <!-- 内容区 -->
     <div class="content">
       <!-- 即将到来 -->
-      <section class="section">
+      <section v-loading="loading" class="section">
         <h2 class="section-title">即将到来</h2>
         <div class="card-list">
           <div
-            v-for="item in DEMO_UPCOMING_REMINDERS"
+            v-for="item in reminders"
             :key="item.id"
             class="reminder-card"
             @click="onItemClick(item)"
@@ -43,30 +99,12 @@ function onItemClick(item) {
               <el-icon :size="20" color="#e5484d"><AlarmClock /></el-icon>
             </div>
             <div class="reminder-card__body">
-              <div class="reminder-card__title">{{ item.title }}</div>
-              <div class="reminder-card__subtitle">{{ item.subtitle }}</div>
+              <div class="reminder-card__title">{{ formatReminderTitle(item) }}</div>
+              <div class="reminder-card__subtitle">{{ formatReminderSubtitle(item) }}</div>
             </div>
           </div>
-        </div>
-      </section>
-
-      <!-- 历史提醒 -->
-      <section class="section">
-        <h2 class="section-title">历史提醒</h2>
-        <div class="card-list">
-          <div
-            v-for="item in DEMO_HISTORY_REMINDERS"
-            :key="item.id"
-            class="reminder-card reminder-card--history"
-            @click="onItemClick(item)"
-          >
-            <div class="reminder-card__icon">
-              <el-icon :size="20" color="#e5484d"><AlarmClock /></el-icon>
-            </div>
-            <div class="reminder-card__body">
-              <div class="reminder-card__title">{{ item.title }}</div>
-              <div class="reminder-card__subtitle">{{ item.subtitle }}</div>
-            </div>
+          <div v-if="!loading && reminders.length === 0" class="empty-state">
+            暂无即将到来的提醒
           </div>
         </div>
       </section>
@@ -134,6 +172,7 @@ function onItemClick(item) {
 }
 
 .section {
+  min-height: 120px;
   margin-bottom: 24px;
 }
 
@@ -166,10 +205,6 @@ function onItemClick(item) {
   background: #fafbff;
 }
 
-.reminder-card--history {
-  opacity: 0.85;
-}
-
 .reminder-card__icon {
   flex-shrink: 0;
   display: flex;
@@ -197,5 +232,14 @@ function onItemClick(item) {
   font-size: 13px;
   color: #999;
   line-height: 1.3;
+}
+
+.empty-state {
+  padding: 32px 16px;
+  text-align: center;
+  font-size: 14px;
+  color: #aaa;
+  background: #fff;
+  border-radius: 12px;
 }
 </style>
