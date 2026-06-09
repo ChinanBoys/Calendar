@@ -169,9 +169,6 @@ async function onDeleteEvent() {
   }
 }
 
-function onVoiceEdit() {
-  ElMessage.info('请先直接修改字段后保存')
-}
 </script>
 
 <template>
@@ -182,10 +179,6 @@ function onVoiceEdit() {
         <el-icon :size="20"><ArrowLeft /></el-icon>
       </button>
       <span class="top-bar__title">事件详情</span>
-      <button class="voice-edit-btn" aria-label="语音修改" @click="onVoiceEdit">
-        <el-icon :size="14"><Microphone /></el-icon>
-        改
-      </button>
     </header>
 
     <!-- 表单 -->
