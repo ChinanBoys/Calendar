@@ -3,9 +3,10 @@ import { ref } from 'vue'
 import { Location, WarningFilled } from '@element-plus/icons-vue'
 import { formatTime } from '@/utils/date'
 
-defineProps({
+const props = defineProps({
   event: { type: Object, required: true },
   hasConflict: { type: Boolean, default: false },
+  isPast: { type: Boolean, default: false },
 })
 
 const emit = defineEmits(['click', 'delete'])
@@ -32,6 +33,11 @@ function onTouchEnd() {
   offsetX.value = 0
   swiping.value = false
 }
+
+function onCardClick() {
+  if (props.isPast) return
+  emit('click')
+}
 </script>
 
 <template>
@@ -44,9 +50,9 @@ function onTouchEnd() {
     <div class="delete-action">删除</div>
     <div
       class="event-card"
-      :class="{ conflict: hasConflict }"
+      :class="{ conflict: hasConflict, 'event-card--past': isPast }"
       :style="{ transform: `translateX(${offsetX}px)` }"
-      @click="emit('click')"
+      @click="onCardClick"
     >
       <div class="event-card__time">
         <span class="time-start">{{ formatTime(event.startTime) }}</span>
@@ -109,6 +115,16 @@ function onTouchEnd() {
   border-left-color: #e5484d;
 }
 
+.event-card--past {
+  background: #f1f2f5;
+  border-left-color: #c6c8cf;
+  cursor: default;
+}
+
+.event-card--past.conflict {
+  border-left-color: #c6c8cf;
+}
+
 .event-card__time {
   display: flex;
   flex-direction: column;
@@ -121,6 +137,13 @@ function onTouchEnd() {
   font-size: 15px;
   font-weight: 600;
   color: #333;
+}
+
+.event-card--past .time-start,
+.event-card--past .time-end,
+.event-card--past .event-card__title,
+.event-card--past .event-card__location {
+  color: #a5a7ad;
 }
 
 .time-end {

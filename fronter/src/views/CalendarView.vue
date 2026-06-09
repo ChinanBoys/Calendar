@@ -1,10 +1,10 @@
 <script setup>
-import { ref, computed, watch, onMounted } from 'vue'
+import { ref, computed, watch, onMounted, onUnmounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { ArrowLeft, ArrowRight, Microphone } from '@element-plus/icons-vue'
 import AgendaEventItem from '@/components/calendar/AgendaEventItem.vue'
 import { fetchEvents } from '@/api/events'
-import { filterEventsForDay } from '@/utils/date'
+import { filterEventsForDay, isPastEvent } from '@/utils/date'
 import {
   WEEKDAY_LABELS,
   buildMonthGrid,
@@ -29,6 +29,8 @@ const viewDate = ref(new Date(today))
 const selectedDate = ref(new Date(today))
 const events = ref([])
 const loading = ref(false)
+const now = ref(new Date())
+let clockTimer = null
 
 watch(
   () => route.query.view,
@@ -47,13 +49,15 @@ const calendarCells = computed(() =>
 
 const agendaTitle = computed(() => formatDayAgendaTitle(selectedDate.value))
 
-const eventMap = computed(() => groupEventsByDateKey(events.value))
+const visibleEventMap = computed(() =>
+  groupEventsByDateKey(events.value.filter((event) => !isPastEvent(event, now.value))),
+)
 
 const dayEvents = computed(() =>
   filterEventsForDay(events.value, selectedDate.value),
 )
 
-const datesWithEvents = computed(() => new Set(Object.keys(eventMap.value)))
+const datesWithEvents = computed(() => new Set(Object.keys(visibleEventMap.value)))
 
 /** F-VIEW-02 — 按周/月范围加载后端事件 */
 async function loadEvents() {
@@ -83,6 +87,10 @@ function hasEvent(date) {
 
 function isSelected(date) {
   return isSameDay(date, selectedDate.value)
+}
+
+function isEventPast(event) {
+  return isPastEvent(event, now.value)
 }
 
 function onSelectDate(date) {
@@ -117,6 +125,7 @@ function goBack() {
 }
 
 function onEventClick(event) {
+  if (isEventPast(event)) return
   router.push(`/events/${event.id}`)
 }
 
@@ -126,6 +135,16 @@ watch([viewMode, viewDate], () => {
 
 onMounted(() => {
   loadEvents()
+  clockTimer = window.setInterval(() => {
+    now.value = new Date()
+  }, 60 * 1000)
+})
+
+onUnmounted(() => {
+  if (clockTimer) {
+    window.clearInterval(clockTimer)
+    clockTimer = null
+  }
 })
 </script>
 
@@ -198,6 +217,7 @@ onMounted(() => {
           v-for="event in dayEvents"
           :key="event.id"
           :event="event"
+          :is-past="isEventPast(event)"
           @click="onEventClick"
         />
       </div>

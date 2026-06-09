@@ -1,8 +1,37 @@
 const WEEKDAYS = ['周日', '周一', '周二', '周三', '周四', '周五', '周六']
 
+export function parseLocalDateTime(value) {
+  if (!value) return Number.NaN
+
+  const text = String(value).trim()
+  const match = text.match(
+    /^(\d{4})-(\d{2})-(\d{2})(?:T|\s)(\d{2}):(\d{2})(?::(\d{2}))?/,
+  )
+
+  if (match) {
+    const [, year, month, day, hour, minute, second = '0'] = match
+    return new Date(
+      Number(year),
+      Number(month) - 1,
+      Number(day),
+      Number(hour),
+      Number(minute),
+      Number(second),
+    ).getTime()
+  }
+
+  return new Date(value).getTime()
+}
+
+function toLocalDate(value) {
+  const time = parseLocalDateTime(value)
+  return Number.isFinite(time) ? new Date(time) : null
+}
+
 export function formatTime(isoString) {
   if (!isoString) return ''
-  const date = new Date(isoString)
+  const date = toLocalDate(isoString)
+  if (!date) return ''
   const h = String(date.getHours()).padStart(2, '0')
   const m = String(date.getMinutes()).padStart(2, '0')
   return `${h}:${m}`
@@ -11,7 +40,8 @@ export function formatTime(isoString) {
 /** 格式：6月1日 15:00 */
 export function formatDateTime(isoString) {
   if (!isoString) return ''
-  const date = new Date(isoString)
+  const date = toLocalDate(isoString)
+  if (!date) return ''
   const month = date.getMonth() + 1
   const day = date.getDate()
   return `${month}月${day}日 ${formatTime(isoString)}`
@@ -40,7 +70,7 @@ export function filterEventsForDay(events, date = new Date()) {
   const dayKey = getDateKey(date)
   return [...events]
     .filter((e) => getEventDateKey(e.startTime) === dayKey)
-    .sort((a, b) => new Date(a.startTime) - new Date(b.startTime))
+    .sort((a, b) => parseLocalDateTime(a.startTime) - parseLocalDateTime(b.startTime))
 }
 
 export function getDayRange(date = new Date()) {
@@ -58,4 +88,13 @@ export function toIsoLocal(date) {
 
 export function nowIso() {
   return new Date().toISOString()
+}
+
+export function isPastEvent(event, now = new Date()) {
+  if (!event?.endTime) return false
+
+  const eventEnd = parseLocalDateTime(event.endTime)
+  const reference = now instanceof Date ? now.getTime() : parseLocalDateTime(now)
+
+  return Number.isFinite(eventEnd) && Number.isFinite(reference) && eventEnd <= reference
 }

@@ -2,15 +2,25 @@
 import { Location } from '@element-plus/icons-vue'
 import { formatTime } from '@/utils/date'
 
-defineProps({
+const props = defineProps({
   event: { type: Object, required: true },
+  isPast: { type: Boolean, default: false },
 })
 
-defineEmits(['click'])
+const emit = defineEmits(['click'])
+
+function onClick() {
+  if (props.isPast) return
+  emit('click', props.event)
+}
 </script>
 
 <template>
-  <div class="agenda-item" @click="$emit('click', event)">
+  <div
+    class="agenda-item"
+    :class="{ 'agenda-item--past': isPast }"
+    @click="onClick"
+  >
     <div class="agenda-item__time">
       <span class="time-start">{{ formatTime(event.startTime) }}</span>
       <span class="time-end">{{ formatTime(event.endTime) }}</span>
@@ -43,6 +53,16 @@ defineEmits(['click'])
   background: #fafbff;
 }
 
+.agenda-item--past {
+  background: #f1f2f5;
+  box-shadow: none;
+  cursor: default;
+}
+
+.agenda-item--past:hover {
+  background: #f1f2f5;
+}
+
 .agenda-item__time {
   display: flex;
   flex-direction: column;
@@ -58,6 +78,13 @@ defineEmits(['click'])
   color: #333;
 }
 
+.agenda-item--past .time-start,
+.agenda-item--past .time-end,
+.agenda-item--past .agenda-item__title,
+.agenda-item--past .agenda-item__location {
+  color: #a5a7ad;
+}
+
 .time-end {
   font-size: 12px;
   color: #999;
@@ -68,6 +95,10 @@ defineEmits(['click'])
   border-radius: 2px;
   background: #5b6cff;
   flex-shrink: 0;
+}
+
+.agenda-item--past .agenda-item__divider {
+  background: #c6c8cf;
 }
 
 .agenda-item__body {

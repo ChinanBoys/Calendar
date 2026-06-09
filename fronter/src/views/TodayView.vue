@@ -1,5 +1,5 @@
 <script setup>
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed, onMounted, onUnmounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { Fold, Search, Bell } from '@element-plus/icons-vue'
 import { ElMessageBox, ElNotification } from 'element-plus'
@@ -8,7 +8,7 @@ import VoicePanel from '@/components/today/VoicePanel.vue'
 import ConfirmCard from '@/components/today/ConfirmCard.vue'
 import { fetchEvents, deleteEvent, restoreEvent } from '@/api/events'
 import { fetchUpcomingReminders } from '@/api/reminders'
-import { formatTodayHeader, getDayRange, filterEventsForDay } from '@/utils/date'
+import { formatTodayHeader, getDayRange, filterEventsForDay, isPastEvent } from '@/utils/date'
 import { findConflictingEventIds } from '@/utils/conflict'
 
 const router = useRouter()
@@ -17,6 +17,8 @@ const activeTab = ref('today')
 const events = ref([])
 const loading = ref(false)
 const reminderCount = ref(0)
+const now = ref(new Date())
+let clockTimer = null
 const todayHeader = computed(() => formatTodayHeader(new Date()))
 
 const conflictIds = computed(() => findConflictingEventIds(events.value))
@@ -78,7 +80,12 @@ function onTabChange(tab) {
 
 /** F-VIEW-04 — 事件详情 */
 function onEventClick(event) {
+  if (isEventPast(event)) return
   router.push(`/events/${event.id}`)
+}
+
+function isEventPast(event) {
+  return isPastEvent(event, now.value)
 }
 
 /** F-DEL-02 — 左滑删除 + 撤销 */
@@ -135,6 +142,16 @@ function onConfirmRetalk() {
 onMounted(() => {
   loadTodayEvents()
   loadReminderBadge()
+  clockTimer = window.setInterval(() => {
+    now.value = new Date()
+  }, 60 * 1000)
+})
+
+onUnmounted(() => {
+  if (clockTimer) {
+    window.clearInterval(clockTimer)
+    clockTimer = null
+  }
 })
 </script>
 
@@ -183,7 +200,8 @@ onMounted(() => {
             v-for="event in events"
             :key="event.id"
             :event="event"
-            :has-conflict="conflictIds.has(event.id)"
+            :has-conflict="!isEventPast(event) && conflictIds.has(event.id)"
+            :is-past="isEventPast(event)"
             @click="onEventClick(event)"
             @delete="onEventDelete(event)"
           />
