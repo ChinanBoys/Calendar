@@ -47,11 +47,18 @@ function formatReminderSubtitle(item) {
   return parts.join(' · ')
 }
 
+function isReminderExpired(item) {
+  if (!item.endTime) return false
+
+  const endTime = parseLocalDateTime(item.endTime)
+  return Number.isFinite(endTime) && endTime <= Date.now()
+}
+
 async function loadReminders() {
   loading.value = true
   try {
     const res = await fetchUpcomingReminders(24)
-    reminders.value = res.data ?? []
+    reminders.value = (res.data ?? []).filter((item) => !isReminderExpired(item))
   } catch {
     reminders.value = []
   } finally {

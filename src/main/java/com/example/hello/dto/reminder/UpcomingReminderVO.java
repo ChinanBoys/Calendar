@@ -19,6 +19,9 @@ public class UpcomingReminderVO {
     @JsonFormat(pattern = PATTERN)
     private LocalDateTime startTime;
 
+    @JsonFormat(pattern = PATTERN)
+    private LocalDateTime endTime;
+
     private Integer offsetMinutes;
 
     @JsonFormat(pattern = PATTERN)
@@ -56,6 +59,14 @@ public class UpcomingReminderVO {
 
     public void setStartTime(LocalDateTime startTime) {
         this.startTime = startTime;
+    }
+
+    public LocalDateTime getEndTime() {
+        return endTime;
+    }
+
+    public void setEndTime(LocalDateTime endTime) {
+        this.endTime = endTime;
     }
 
     public Integer getOffsetMinutes() {
