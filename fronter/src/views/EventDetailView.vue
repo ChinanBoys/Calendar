@@ -2,13 +2,14 @@
 import { ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { ArrowLeft, Microphone } from '@element-plus/icons-vue'
-import { ElMessage } from 'element-plus'
-import { fetchEventById } from '@/api/events'
-import { formatDateTime } from '@/utils/date'
+import { ElMessage, ElMessageBox } from 'element-plus'
+import { deleteEvent, fetchEventById, updateEvent } from '@/api/events'
 
 const route = useRoute()
 const router = useRouter()
 const loading = ref(false)
+const saving = ref(false)
+const deleting = ref(false)
 
 const REMINDER_OPTIONS = [
   { label: '不提醒', value: 0 },
@@ -45,8 +46,8 @@ function fillForm(event) {
   form.value = {
     title: event.title ?? '',
     allDay: event.allDay ?? false,
-    startTime: formatDateTime(event.startTime),
-    endTime: formatDateTime(event.endTime),
+    startTime: event.startTime ?? '',
+    endTime: event.endTime ?? '',
     location: event.location ?? '',
     reminderMinutes: getReminderMinutes(event),
     recurrence: event.recurrence ?? 'none',
@@ -77,6 +78,100 @@ watch(() => route.params.id, loadEventDetail, { immediate: true })
 function goBack() {
   router.back()
 }
+
+function buildReminderOffsets() {
+  const minutes = Number(form.value.reminderMinutes)
+  return minutes > 0 ? [minutes] : []
+}
+
+function validateForm() {
+  if (!form.value.title?.trim()) {
+    ElMessage.warning('请输入标题')
+    return false
+  }
+  if (!form.value.startTime || !form.value.endTime) {
+    ElMessage.warning('请选择开始和结束时间')
+    return false
+  }
+  if (!form.value.allDay && form.value.endTime <= form.value.startTime) {
+    ElMessage.warning('结束时间必须晚于开始时间')
+    return false
+  }
+  return true
+}
+
+function buildPayload(force = false) {
+  return {
+    title: form.value.title.trim(),
+    allDay: form.value.allDay,
+    startTime: form.value.startTime,
+    endTime: form.value.endTime,
+    location: form.value.location?.trim() ?? '',
+    note: form.value.note?.trim() ?? '',
+    recurrence: form.value.recurrence,
+    reminderOffsets: buildReminderOffsets(),
+    force,
+  }
+}
+
+async function saveEvent(force = false) {
+  const id = route.params.id
+  if (!id || !validateForm()) return
+
+  saving.value = true
+  try {
+    const res = await updateEvent(id, buildPayload(force))
+    if (!force && res.msg === '时间冲突' && Array.isArray(res.data) && res.data.length) {
+      try {
+        await ElMessageBox.confirm(
+          '检测到时间冲突，是否仍然保存？',
+          '时间冲突',
+          { confirmButtonText: '仍然保存', cancelButtonText: '取消', type: 'warning' },
+        )
+        await saveEvent(true)
+      } catch {
+        /* 用户取消 */
+      }
+      return
+    }
+    ElMessage.success('修改已保存')
+    await loadEventDetail(id)
+  } catch {
+    /* 错误已由请求拦截器提示 */
+  } finally {
+    saving.value = false
+  }
+}
+
+async function onDeleteEvent() {
+  const id = route.params.id
+  if (!id) return
+
+  try {
+    await ElMessageBox.confirm(
+      `确定删除「${form.value.title || '该事件'}」？`,
+      '删除事件',
+      { confirmButtonText: '删除', cancelButtonText: '取消', type: 'warning' },
+    )
+  } catch {
+    return
+  }
+
+  deleting.value = true
+  try {
+    await deleteEvent(id)
+    ElMessage.success('事件已删除')
+    router.replace('/')
+  } catch {
+    /* 错误已由请求拦截器提示 */
+  } finally {
+    deleting.value = false
+  }
+}
+
+function onVoiceEdit() {
+  ElMessage.info('请先直接修改字段后保存')
+}
 </script>
 
 <template>
@@ -87,7 +182,7 @@ function goBack() {
         <el-icon :size="20"><ArrowLeft /></el-icon>
       </button>
       <span class="top-bar__title">事件详情</span>
-      <button class="voice-edit-btn" aria-label="语音修改">
+      <button class="voice-edit-btn" aria-label="语音修改" @click="onVoiceEdit">
         <el-icon :size="14"><Microphone /></el-icon>
         改
       </button>
@@ -108,11 +203,23 @@ function goBack() {
       <div class="form-item form-item--time">
         <div class="time-field">
           <label class="form-label">开始</label>
-          <el-input v-model="form.startTime" class="form-input" readonly />
+          <el-date-picker
+            v-model="form.startTime"
+            type="datetime"
+            value-format="YYYY-MM-DDTHH:mm:ss"
+            class="form-input form-date-picker"
+            placeholder="请选择开始时间"
+          />
         </div>
         <div class="time-field">
           <label class="form-label">结束</label>
-          <el-input v-model="form.endTime" class="form-input" readonly />
+          <el-date-picker
+            v-model="form.endTime"
+            type="datetime"
+            value-format="YYYY-MM-DDTHH:mm:ss"
+            class="form-input form-date-picker"
+            placeholder="请选择结束时间"
+          />
         </div>
       </div>
 
@@ -159,8 +266,12 @@ function goBack() {
 
     <!-- 底部操作 -->
     <div class="form-actions">
-      <button class="save-btn">保存修改</button>
-      <button class="delete-btn">删除此事件</button>
+      <button class="save-btn" :disabled="saving || deleting" @click="saveEvent(false)">
+        {{ saving ? '保存中…' : '保存修改' }}
+      </button>
+      <button class="delete-btn" :disabled="saving || deleting" @click="onDeleteEvent">
+        {{ deleting ? '删除中…' : '删除此事件' }}
+      </button>
     </div>
   </div>
 </template>
@@ -278,6 +389,10 @@ function goBack() {
   padding: 8px 12px;
 }
 
+.form-date-picker {
+  width: 100%;
+}
+
 .form-input :deep(.el-textarea__inner) {
   background: #f5f6fa;
   box-shadow: none;
@@ -312,6 +427,12 @@ function goBack() {
 
 .save-btn:hover {
   opacity: 0.9;
+}
+
+.save-btn:disabled,
+.delete-btn:disabled {
+  cursor: not-allowed;
+  opacity: 0.55;
 }
 
 .delete-btn {
