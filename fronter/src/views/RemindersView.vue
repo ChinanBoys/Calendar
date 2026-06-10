@@ -4,6 +4,7 @@ import { useRouter } from 'vue-router'
 import { ArrowLeft, AlarmClock } from '@element-plus/icons-vue'
 import { fetchUpcomingReminders, markReminderRead } from '@/api/reminders'
 import { formatDateTime, formatTime, parseLocalDateTime } from '@/utils/date'
+import { filterActiveReminders, notifyRemindersChanged } from '@/utils/reminder'
 
 const router = useRouter()
 const loading = ref(false)
@@ -13,7 +14,7 @@ let refreshTimer = null
 let clockTimer = null
 
 const visibleReminders = computed(() =>
-  reminders.value.filter((item) => !isReminderEnded(item)),
+  filterActiveReminders(reminders.value, now.value),
 )
 
 function isSameDay(a, b) {
@@ -54,11 +55,6 @@ function formatReminderSubtitle(item) {
   return parts.join(' · ')
 }
 
-function isReminderEnded(item) {
-  const endTime = parseLocalDateTime(item.endTime)
-  return Number.isFinite(endTime) && endTime < now.value
-}
-
 async function loadReminders({ showLoading = true } = {}) {
   if (showLoading) {
     loading.value = true
@@ -84,6 +80,7 @@ async function onItemClick(item) {
     try {
       await markReminderRead(item.id)
       item.sent = true
+      notifyRemindersChanged({ reminderId: item.id })
     } catch {
       // 详情仍可进入；下次刷新会以服务端状态为准。
     }

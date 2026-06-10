@@ -52,7 +52,7 @@
         WHERE r.user_id = #{userId}
           AND e.status = 1
           AND r.fire_time &lt;= #{currentTime}
-          AND e.end_time &gt;= #{currentTime}
+          AND e.end_time &gt; #{currentTime}
         ORDER BY r.fire_time ASC
     </select>
 

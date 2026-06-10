@@ -10,6 +10,7 @@ import { fetchEvents, deleteEvent, restoreEvent } from '@/api/events'
 import { fetchUpcomingReminders } from '@/api/reminders'
 import { formatTodayHeader, getDayRange, filterEventsForDay, isPastEvent } from '@/utils/date'
 import { findConflictingEventIds } from '@/utils/conflict'
+import { REMINDERS_CHANGED_EVENT, countUnreadReminders } from '@/utils/reminder'
 
 const router = useRouter()
 
@@ -48,7 +49,7 @@ async function loadTodayEvents() {
 async function loadReminderBadge() {
   try {
     const res = await fetchUpcomingReminders(24)
-    reminderCount.value = (res.data ?? []).filter((item) => !item.sent).length
+    reminderCount.value = countUnreadReminders(res.data ?? [], Date.now())
   } catch {
     reminderCount.value = 0
   }
@@ -140,13 +141,27 @@ function onConfirmRetalk() {
   voicePanelRef.value?.promptVoiceInput(parseResult.value?.rawText ?? '')
 }
 
+function onRemindersChanged() {
+  loadReminderBadge()
+}
+
+function onVisibilityChange() {
+  if (!document.hidden) {
+    loadReminderBadge()
+  }
+}
+
 onMounted(() => {
   loadTodayEvents()
   loadReminderBadge()
   clockTimer = window.setInterval(() => {
     now.value = new Date()
+    loadReminderBadge()
   }, 60 * 1000)
   reminderTimer = window.setInterval(loadReminderBadge, 30 * 1000)
+  window.addEventListener(REMINDERS_CHANGED_EVENT, onRemindersChanged)
+  window.addEventListener('focus', onRemindersChanged)
+  document.addEventListener('visibilitychange', onVisibilityChange)
 })
 
 onUnmounted(() => {
@@ -158,6 +173,9 @@ onUnmounted(() => {
     window.clearInterval(reminderTimer)
     reminderTimer = null
   }
+  window.removeEventListener(REMINDERS_CHANGED_EVENT, onRemindersChanged)
+  window.removeEventListener('focus', onRemindersChanged)
+  document.removeEventListener('visibilitychange', onVisibilityChange)
 })
 </script>
 
