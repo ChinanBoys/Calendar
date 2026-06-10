@@ -2,7 +2,7 @@
 import { ref, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { ArrowLeft, AlarmClock } from '@element-plus/icons-vue'
-import { fetchUpcomingReminders } from '@/api/reminders'
+import { fetchUpcomingReminders, markReminderRead } from '@/api/reminders'
 import { formatDateTime, formatTime, parseLocalDateTime } from '@/utils/date'
 
 const router = useRouter()
@@ -47,21 +47,21 @@ function formatReminderSubtitle(item) {
   return parts.join(' · ')
 }
 
-function isReminderExpired(item) {
+function isActiveReminder(item) {
   const now = Date.now()
 
   const fireTime = parseLocalDateTime(item.fireTime)
-  if (Number.isFinite(fireTime) && fireTime <= now) return true
+  if (!Number.isFinite(fireTime) || fireTime > now) return false
 
   const endTime = parseLocalDateTime(item.endTime)
-  return Number.isFinite(endTime) && endTime <= now
+  return Number.isFinite(endTime) && endTime >= now
 }
 
 async function loadReminders() {
   loading.value = true
   try {
     const res = await fetchUpcomingReminders(24)
-    reminders.value = (res.data ?? []).filter((item) => !isReminderExpired(item))
+    reminders.value = (res.data ?? []).filter((item) => isActiveReminder(item))
   } catch {
     reminders.value = []
   } finally {
@@ -73,7 +73,16 @@ function goBack() {
   router.back()
 }
 
-function onItemClick(item) {
+async function onItemClick(item) {
+  if (item.id && !item.sent) {
+    try {
+      await markReminderRead(item.id)
+      item.sent = true
+    } catch {
+      // 详情仍可进入；下次刷新会以服务端状态为准。
+    }
+  }
+
   if (item.eventId) {
     router.push(`/events/${item.eventId}`)
   }
@@ -105,6 +114,7 @@ onMounted(loadReminders)
             class="reminder-card"
             @click="onItemClick(item)"
           >
+            <span v-if="!item.sent" class="reminder-card__dot" />
             <div class="reminder-card__icon">
               <el-icon :size="20" color="#e5484d"><AlarmClock /></el-icon>
             </div>
@@ -200,6 +210,7 @@ onMounted(loadReminders)
 }
 
 .reminder-card {
+  position: relative;
   display: flex;
   align-items: flex-start;
   gap: 12px;
@@ -213,6 +224,17 @@ onMounted(loadReminders)
 
 .reminder-card:hover {
   background: #fafbff;
+}
+
+.reminder-card__dot {
+  position: absolute;
+  top: 12px;
+  right: 14px;
+  width: 8px;
+  height: 8px;
+  background: #f24c55;
+  border-radius: 50%;
+  box-shadow: 0 0 0 2px #fff;
 }
 
 .reminder-card__icon {

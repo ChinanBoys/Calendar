@@ -10,10 +10,16 @@ import java.util.List;
 public interface ReminderService {
 
     /**
-     * 查询未来若干小时内即将到来的提醒。
+     * 查询当前正在提醒中的提醒。
      *
-     * @param hours 未来小时数，默认 24
      * @return 提醒列表（按 fire_time 升序）
      */
     List<UpcomingReminderVO> listUpcoming(int hours);
+
+    /**
+     * 将提醒标记为已查看。
+     *
+     * @param id reminder.id
+     */
+    void markRead(Long id);
 }

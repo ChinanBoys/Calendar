@@ -4,3 +4,8 @@ import request from './request'
 export function fetchUpcomingReminders(hours = 24) {
   return request.get('/reminders/upcoming', { params: { hours } })
 }
+
+/** F-REMIND-02 — 标记提醒已查看 */
+export function markReminderRead(id) {
+  return request.patch(`/reminders/${id}/read`)
+}

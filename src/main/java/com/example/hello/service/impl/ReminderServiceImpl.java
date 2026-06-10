@@ -18,9 +18,6 @@ import java.util.List;
 @Service
 public class ReminderServiceImpl implements ReminderService {
 
-    private static final int DEFAULT_HOURS = 24;
-    private static final int MAX_HOURS = 24 * 30;
-
     private final ReminderMapper reminderMapper;
     private final UserMapper userMapper;
     private final VoiceCalProperties properties;
@@ -45,16 +42,21 @@ public class ReminderServiceImpl implements ReminderService {
 
     @Override
     public List<UpcomingReminderVO> listUpcoming(int hours) {
-        int safeHours = hours > 0 ? hours : DEFAULT_HOURS;
-        if (safeHours > MAX_HOURS) {
-            safeHours = MAX_HOURS;
-        }
-
         Long userId = properties.getDefaultUserId();
         LocalDateTime now = LocalDateTime.now(clock.withZone(resolveUserZone(userId)));
-        LocalDateTime end = now.plusHours(safeHours);
 
-        return reminderMapper.selectUpcoming(userId, now, end);
+        return reminderMapper.selectUpcoming(userId, now);
+    }
+
+    @Override
+    public void markRead(Long id) {
+        if (id == null) {
+            throw new IllegalArgumentException("reminder id 不能为空");
+        }
+        int updated = reminderMapper.markRead(id, properties.getDefaultUserId());
+        if (updated == 0) {
+            throw new IllegalArgumentException("提醒不存在");
+        }
     }
 
     private ZoneId resolveUserZone(Long userId) {

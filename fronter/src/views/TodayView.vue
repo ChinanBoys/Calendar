@@ -47,7 +47,7 @@ async function loadTodayEvents() {
 async function loadReminderBadge() {
   try {
     const res = await fetchUpcomingReminders(24)
-    reminderCount.value = res.data?.length ?? 0
+    reminderCount.value = (res.data ?? []).filter((item) => !item.sent).length
   } catch {
     reminderCount.value = 0
   }

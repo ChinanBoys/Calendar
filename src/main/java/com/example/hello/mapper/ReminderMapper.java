@@ -18,9 +18,13 @@ public interface ReminderMapper {
     List<Reminder> selectByEventId(@Param("eventId") Long eventId);
 
     /**
-     * 查询未来 N 小时内即将到来的提醒（reminder JOIN event）。
+     * 查询当前正在提醒中的提醒（reminder JOIN event）。
      */
     List<UpcomingReminderVO> selectUpcoming(@Param("userId") Long userId,
-                                            @Param("fromTime") LocalDateTime fromTime,
-                                            @Param("toTime") LocalDateTime toTime);
+                                            @Param("currentTime") LocalDateTime currentTime);
+
+    /**
+     * 将提醒标记为已查看。
+     */
+    int markRead(@Param("id") Long id, @Param("userId") Long userId);
 }
