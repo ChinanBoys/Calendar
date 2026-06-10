@@ -47,21 +47,11 @@ function formatReminderSubtitle(item) {
   return parts.join(' · ')
 }
 
-function isActiveReminder(item) {
-  const now = Date.now()
-
-  const fireTime = parseLocalDateTime(item.fireTime)
-  if (!Number.isFinite(fireTime) || fireTime > now) return false
-
-  const endTime = parseLocalDateTime(item.endTime)
-  return Number.isFinite(endTime) && endTime >= now
-}
-
 async function loadReminders() {
   loading.value = true
   try {
     const res = await fetchUpcomingReminders(24)
-    reminders.value = (res.data ?? []).filter((item) => isActiveReminder(item))
+    reminders.value = res.data ?? []
   } catch {
     reminders.value = []
   } finally {
