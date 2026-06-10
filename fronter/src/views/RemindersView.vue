@@ -48,10 +48,13 @@ function formatReminderSubtitle(item) {
 }
 
 function isReminderExpired(item) {
-  if (!item.endTime) return false
+  const now = Date.now()
+
+  const fireTime = parseLocalDateTime(item.fireTime)
+  if (Number.isFinite(fireTime) && fireTime <= now) return true
 
   const endTime = parseLocalDateTime(item.endTime)
-  return Number.isFinite(endTime) && endTime <= Date.now()
+  return Number.isFinite(endTime) && endTime <= now
 }
 
 async function loadReminders() {
