@@ -7,5 +7,5 @@ export function fetchUpcomingReminders(hours = 24) {
 
 /** F-REMIND-02 — 标记提醒已查看 */
 export function markReminderRead(id) {
-  return request.patch(`/reminders/${id}/read`)
+  return request.post(`/reminders/${id}/read`, null, { silent: true })
 }

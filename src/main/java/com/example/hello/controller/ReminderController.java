@@ -6,6 +6,7 @@ import com.example.hello.service.ReminderService;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
@@ -42,6 +43,11 @@ public class ReminderController {
      */
     @PatchMapping("/{id}/read")
     public Result<Void> markRead(@PathVariable Long id) {
+        return markReadByPost(id);
+    }
+
+    @PostMapping("/{id}/read")
+    public Result<Void> markReadByPost(@PathVariable Long id) {
         reminderService.markRead(id);
         return Result.success();
     }

@@ -19,6 +19,7 @@ const loading = ref(false)
 const reminderCount = ref(0)
 const now = ref(new Date())
 let clockTimer = null
+let reminderTimer = null
 const todayHeader = computed(() => formatTodayHeader(new Date()))
 
 const conflictIds = computed(() => findConflictingEventIds(events.value))
@@ -145,12 +146,17 @@ onMounted(() => {
   clockTimer = window.setInterval(() => {
     now.value = new Date()
   }, 60 * 1000)
+  reminderTimer = window.setInterval(loadReminderBadge, 30 * 1000)
 })
 
 onUnmounted(() => {
   if (clockTimer) {
     window.clearInterval(clockTimer)
     clockTimer = null
+  }
+  if (reminderTimer) {
+    window.clearInterval(reminderTimer)
+    reminderTimer = null
   }
 })
 </script>

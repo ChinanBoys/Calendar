@@ -1,5 +1,5 @@
 <script setup>
-import { ref, onMounted } from 'vue'
+import { computed, ref, onMounted, onUnmounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { ArrowLeft, AlarmClock } from '@element-plus/icons-vue'
 import { fetchUpcomingReminders, markReminderRead } from '@/api/reminders'
@@ -8,6 +8,13 @@ import { formatDateTime, formatTime, parseLocalDateTime } from '@/utils/date'
 const router = useRouter()
 const loading = ref(false)
 const reminders = ref([])
+const now = ref(Date.now())
+let refreshTimer = null
+let clockTimer = null
+
+const visibleReminders = computed(() =>
+  reminders.value.filter((item) => !isReminderEnded(item)),
+)
 
 function isSameDay(a, b) {
   return (
@@ -47,15 +54,24 @@ function formatReminderSubtitle(item) {
   return parts.join(' · ')
 }
 
-async function loadReminders() {
-  loading.value = true
+function isReminderEnded(item) {
+  const endTime = parseLocalDateTime(item.endTime)
+  return Number.isFinite(endTime) && endTime < now.value
+}
+
+async function loadReminders({ showLoading = true } = {}) {
+  if (showLoading) {
+    loading.value = true
+  }
   try {
     const res = await fetchUpcomingReminders(24)
     reminders.value = res.data ?? []
   } catch {
     reminders.value = []
   } finally {
-    loading.value = false
+    if (showLoading) {
+      loading.value = false
+    }
   }
 }
 
@@ -78,7 +94,26 @@ async function onItemClick(item) {
   }
 }
 
-onMounted(loadReminders)
+onMounted(() => {
+  loadReminders()
+  clockTimer = window.setInterval(() => {
+    now.value = Date.now()
+  }, 1000)
+  refreshTimer = window.setInterval(() => {
+    loadReminders({ showLoading: false })
+  }, 30 * 1000)
+})
+
+onUnmounted(() => {
+  if (clockTimer) {
+    window.clearInterval(clockTimer)
+    clockTimer = null
+  }
+  if (refreshTimer) {
+    window.clearInterval(refreshTimer)
+    refreshTimer = null
+  }
+})
 </script>
 
 <template>
@@ -99,7 +134,7 @@ onMounted(loadReminders)
         <h2 class="section-title">即将到来</h2>
         <div class="card-list">
           <div
-            v-for="item in reminders"
+            v-for="item in visibleReminders"
             :key="item.id"
             class="reminder-card"
             @click="onItemClick(item)"
@@ -113,7 +148,7 @@ onMounted(loadReminders)
               <div class="reminder-card__subtitle">{{ formatReminderSubtitle(item) }}</div>
             </div>
           </div>
-          <div v-if="!loading && reminders.length === 0" class="empty-state">
+          <div v-if="!loading && visibleReminders.length === 0" class="empty-state">
             暂无即将到来的提醒
           </div>
         </div>
